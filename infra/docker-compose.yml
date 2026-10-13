@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  backend-execution-service:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: ide-backend-runner
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    # Security restrictions
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
+    mem_limit: 512m
+    cpus: 1.5
+    restart: unless-stopped

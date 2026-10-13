@@ -1,0 +1,37 @@
+name: 💡 Feature Request
+description: Propose a new idea, language runtime, or enhancement for NovaPad
+labels: ["enhancement", "proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a new idea to make NovaPad better!
+  - type: input
+    id: title
+    attributes:
+      label: Feature Title
+      description: A short, descriptive title.
+      placeholder: "e.g., Support Rust runtime via WebAssembly"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Educational Need
+      description: What problem does this solve, or what educational experience does it enable?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution & UX
+      description: Describe how the feature should behave and feel to the student/developer.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative implementations or workarounds you have considered?
+    validations:
+      required: false
