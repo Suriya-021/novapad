@@ -23,7 +23,7 @@ We are committed to providing a welcoming, inclusive, and respectful environment
 
 1. **Fork and Clone the Repository**:
    ```bash
-   git clone https://github.com/your-username/novapad.git
+   git clone https://github.com/Suriya-021/novapad.git
    cd novapad
    ```
 
