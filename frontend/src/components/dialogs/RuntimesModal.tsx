@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Cpu, CheckCircle2, AlertCircle, RefreshCw, RotateCcw } from 'lucide-react';
 import { ExecutionRuntime } from '../../runtimes/contracts/runtime';
 import { RemoteBackendAdapter } from '../../runtimes/remote/remoteAdapter';
@@ -23,7 +23,7 @@ export const RuntimesModal: React.FC<RuntimesModalProps> = ({
     error?: string;
   }>({ checking: false, online: false });
 
-  const checkRemoteHealth = async () => {
+  const checkRemoteHealth = useCallback(async () => {
     const remote = runtimes.find((r) => r.id === 'backend-remote') as RemoteBackendAdapter | undefined;
     if (!remote) return;
 
@@ -42,13 +42,16 @@ export const RuntimesModal: React.FC<RuntimesModalProps> = ({
         error: e instanceof Error ? e.message : String(e),
       });
     }
-  };
+  }, [runtimes]);
 
   useEffect(() => {
     if (isOpen) {
-      checkRemoteHealth();
+      const timer = setTimeout(() => {
+        void checkRemoteHealth();
+      }, 0);
+      return () => clearTimeout(timer);
     }
-  }, [isOpen]);
+  }, [isOpen, checkRemoteHealth]);
 
   if (!isOpen) return null;
 

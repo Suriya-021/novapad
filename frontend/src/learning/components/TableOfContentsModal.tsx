@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, BookOpen, Clock, Code2, CheckCircle2, ChevronRight, UploadCloud } from 'lucide-react';
+import { X, BookOpen, Code2, Clock, ChevronRight, UploadCloud } from 'lucide-react';
 import { Course, Lesson } from '../types/curriculum';
 
 interface TableOfContentsModalProps {

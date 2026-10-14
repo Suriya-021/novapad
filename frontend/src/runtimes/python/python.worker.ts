@@ -119,12 +119,12 @@ self.onmessage = async (e: MessageEvent) => {
           const safeName = filePath.replace(/^[/\\]+/, '');
           try {
             pyodide.FS.writeFile(safeName, content, { encoding: 'utf8' });
-          } catch (e1) {
+          } catch {
             // ignore
           }
           try {
             pyodide.FS.writeFile(`/home/pyodide/${safeName}`, content, { encoding: 'utf8' });
-          } catch (e2) {
+          } catch {
             // ignore
           }
         }

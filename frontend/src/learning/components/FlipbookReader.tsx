@@ -3,21 +3,17 @@ import {
   ChevronLeft,
   ChevronRight,
   List,
-  BookOpen,
   Code2,
   Volume2,
   VolumeX,
   FileText,
   Columns2,
-  Sparkles,
-  ArrowRight,
   Sun,
   Moon,
   Maximize2,
   Minimize2,
-  Type,
 } from 'lucide-react';
-import { Lesson, Course, CodingActivityConfig, ChapterSection } from '../types/curriculum';
+import { Lesson, Course, CodingActivityConfig } from '../types/curriculum';
 import { FlipbookPage } from './FlipbookPage';
 import { FlipbookEndPage } from './FlipbookEndPage';
 import {
@@ -26,6 +22,7 @@ import {
   BookFontFamily,
 } from '../types/bookTheme';
 import { playPageFlipSound } from '../utils/soundEffects';
+import { useSynchronizedScroll } from '../hooks/useSynchronizedScroll';
 import './FlipbookReader.css';
 
 interface FlipbookReaderProps {
@@ -56,22 +53,27 @@ export const FlipbookReader: React.FC<FlipbookReaderProps> = ({
   onNextLesson,
   onPrevLesson,
   nextLessonTitle,
-  prevLessonTitle,
+  prevLessonTitle: _prevLessonTitle,
   onToggleFocusMode,
   isFocusMode,
   onInsertCodeToEditor,
 }) => {
   const totalPages = lesson.pages.length;
 
-  // View Layout Mode: 'spread' (Two-Page Book in full view) vs 'single' (Single Page in side-by-side view)
-  const [layoutMode, setLayoutMode] = useState<'spread' | 'single'>(() => {
-    return isSplitViewActive ? 'single' : 'spread';
+  const isSplit = Boolean(isSplitViewActive);
+  // View Layout Mode: auto defaults based on split view, with user manual override support
+  const [userLayoutMode, setUserLayoutMode] = useState<{ isSplit: boolean; mode: 'spread' | 'single' }>({
+    isSplit,
+    mode: isSplit ? 'single' : 'spread',
   });
 
-  // Automatically adapt layout mode when toggling between side-by-side split view and full book view
-  useEffect(() => {
-    setLayoutMode(isSplitViewActive ? 'single' : 'spread');
-  }, [isSplitViewActive]);
+  const layoutMode: 'spread' | 'single' = userLayoutMode.isSplit !== isSplit
+    ? (isSplit ? 'single' : 'spread')
+    : userLayoutMode.mode;
+
+  const setLayoutMode = (newMode: 'spread' | 'single') => {
+    setUserLayoutMode({ isSplit, mode: newMode });
+  };
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [bookTheme, setBookTheme] = useState<BookTheme>(() => {
     return (localStorage.getItem('flipbook_theme') as BookTheme) || 'dark';
@@ -118,126 +120,20 @@ export const FlipbookReader: React.FC<FlipbookReaderProps> = ({
   const [flipAnimation, setFlipAnimation] = useState<'forward' | 'backward' | null>(null);
   const isFlippingRef = useRef(false);
 
-  // Synchronized scrolling refs and lock flag for two-page spread mode
-  const leftScrollRef = useRef<HTMLDivElement | null>(null);
-  const rightScrollRef = useRef<HTMLDivElement | null>(null);
-  const isSyncingSpreadScrollRef = useRef<boolean>(false);
-
-  // Bidirectional synchronized scroll handler for left page
-  const handleLeftScroll = useCallback(() => {
-    if (isSyncingSpreadScrollRef.current) return;
-    const left = leftScrollRef.current;
-    const right = rightScrollRef.current;
-    if (!left || !right) return;
-
-    const maxLeft = left.scrollHeight - left.clientHeight;
-    const maxRight = right.scrollHeight - right.clientHeight;
-
-    if (maxLeft > 0 && maxRight > 0) {
-      const ratio = left.scrollTop / maxLeft;
-      const targetY = Math.round(ratio * maxRight);
-      if (Math.abs(right.scrollTop - targetY) > 1) {
-        isSyncingSpreadScrollRef.current = true;
-        right.scrollTop = targetY;
-        requestAnimationFrame(() => {
-          isSyncingSpreadScrollRef.current = false;
-        });
-      }
-    } else if (maxRight > 0) {
-      isSyncingSpreadScrollRef.current = true;
-      right.scrollTop = left.scrollTop;
-      requestAnimationFrame(() => {
-        isSyncingSpreadScrollRef.current = false;
-      });
-    }
-  }, []);
-
-  // Bidirectional synchronized scroll handler for right page
-  const handleRightScroll = useCallback(() => {
-    if (isSyncingSpreadScrollRef.current) return;
-    const left = leftScrollRef.current;
-    const right = rightScrollRef.current;
-    if (!left || !right) return;
-
-    const maxLeft = left.scrollHeight - left.clientHeight;
-    const maxRight = right.scrollHeight - right.clientHeight;
-
-    if (maxLeft > 0 && maxRight > 0) {
-      const ratio = right.scrollTop / maxRight;
-      const targetY = Math.round(ratio * maxLeft);
-      if (Math.abs(left.scrollTop - targetY) > 1) {
-        isSyncingSpreadScrollRef.current = true;
-        left.scrollTop = targetY;
-        requestAnimationFrame(() => {
-          isSyncingSpreadScrollRef.current = false;
-        });
-      }
-    } else if (maxLeft > 0) {
-      isSyncingSpreadScrollRef.current = true;
-      left.scrollTop = right.scrollTop;
-      requestAnimationFrame(() => {
-        isSyncingSpreadScrollRef.current = false;
-      });
-    }
-  }, []);
-
-  // Synchronized mouse-wheel handler over the entire two-page spread (including spine/gutters)
-  const handleBookWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
-    const left = leftScrollRef.current;
-    const right = rightScrollRef.current;
-    if (!left || !right) return;
-
-    const target = e.target as HTMLElement;
-    const isOverLeft = left.contains(target);
-    const isOverRight = right.contains(target);
-
-    const maxLeft = left.scrollHeight - left.clientHeight;
-    const maxRight = right.scrollHeight - right.clientHeight;
-
-    // When hovering over spine or outer margins
-    if (!isOverLeft && !isOverRight) {
-      if (maxLeft > 0) {
-        left.scrollTop += e.deltaY;
-      } else if (maxRight > 0) {
-        right.scrollTop += e.deltaY;
-      }
-      return;
-    }
-
-    // If hovering over left, but left cannot scroll further in this direction
-    if (isOverLeft) {
-      const cannotScrollDown = e.deltaY > 0 && left.scrollTop >= maxLeft - 1;
-      const cannotScrollUp = e.deltaY < 0 && left.scrollTop <= 1;
-      if ((maxLeft <= 0 || cannotScrollDown || cannotScrollUp) && maxRight > 0) {
-        right.scrollTop += e.deltaY;
-      }
-    }
-
-    // If hovering over right, but right cannot scroll further in this direction
-    if (isOverRight) {
-      const cannotScrollDown = e.deltaY > 0 && right.scrollTop >= maxRight - 1;
-      const cannotScrollUp = e.deltaY < 0 && right.scrollTop <= 1;
-      if ((maxRight <= 0 || cannotScrollDown || cannotScrollUp) && maxLeft > 0) {
-        left.scrollTop += e.deltaY;
-      }
-    }
-  }, []);
-
   // Calculate spreads (2 pages per spread in book mode)
   // Spread 0: Pages 0 & 1 (Page 1 & 2 in 1-indexed)
   // Spread 1: Pages 2 & 3 (Page 3 & 4 in 1-indexed)
   const currentSpreadIndex = Math.floor(currentPageIndex / 2);
   const totalSpreads = Math.ceil(totalPages / 2);
 
-  // Reset scroll to top on spread change or lesson change
-  useEffect(() => {
-    if (leftScrollRef.current) {
-      leftScrollRef.current.scrollTop = 0;
-    }
-    if (rightScrollRef.current) {
-      rightScrollRef.current.scrollTop = 0;
-    }
-  }, [currentSpreadIndex, currentPageIndex, lesson.id]);
+  // Synchronized scrolling via dedicated custom hook
+  const {
+    leftScrollRef,
+    rightScrollRef,
+    handleLeftScroll,
+    handleRightScroll,
+    handleBookWheel,
+  } = useSynchronizedScroll(`${currentSpreadIndex}-${currentPageIndex}-${lesson.id}`);
 
   const leftPageIndex = currentSpreadIndex * 2;
   const rightPageIndex = currentSpreadIndex * 2 + 1;

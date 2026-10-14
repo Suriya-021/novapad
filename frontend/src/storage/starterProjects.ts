@@ -123,7 +123,7 @@ INSERT INTO engineers (name, role, experience_years, salary) VALUES
 ('Elena Rostova', 'Frontend Architect', 9, 145000),
 ('Marcus Chen', 'Backend Engineer', 7, 138000),
 ('Sophia Al-Mansoor', 'DevOps / Systems', 8, 142000),
-('Liam O\\\'Connor', 'Compiler & WASM Specialist', 11, 160000),
+('Liam O''Connor', 'Compiler & WASM Specialist', 11, 160000),
 ('Aria Vance', 'Fullstack Engineer', 4, 115000);
 
 INSERT INTO projects (title, lead_id, status, budget) VALUES

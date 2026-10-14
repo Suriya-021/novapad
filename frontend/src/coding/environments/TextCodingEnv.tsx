@@ -64,23 +64,23 @@ export const TextCodingEnv: React.FC<TextCodingEnvProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Wire Execution Manager callbacks
+  // Wire Execution Manager callbacks cleanly via subscription
   React.useEffect(() => {
-    executionManager.onStatusUpdate = (status, msg) => {
-      setExecutionStatus(status);
-      if (msg) setStatusMessage(msg);
-    };
-
-    executionManager.onOutputChunk = (type, text) => {
-      setStreamingLogs((prev) => [...prev, { type, text }]);
-    };
-
-    executionManager.onOutputUpdate = (result) => {
-      setCurrentResult(result);
-      if (result.runtimeMetadata?.previewUrl) {
-        setPreviewUrl(result.runtimeMetadata.previewUrl as string);
-      }
-    };
+    return executionManager.subscribe({
+      onStatusUpdate: (status, msg) => {
+        setExecutionStatus(status);
+        if (msg) setStatusMessage(msg);
+      },
+      onOutputChunk: (type, text) => {
+        setStreamingLogs((prev) => [...prev, { type, text }]);
+      },
+      onOutputUpdate: (result) => {
+        setCurrentResult(result);
+        if (result.runtimeMetadata?.previewUrl) {
+          setPreviewUrl(result.runtimeMetadata.previewUrl as string);
+        }
+      },
+    });
   }, [executionManager]);
 
   const activeFile = project.files.find((f) => f.id === activeFileId) || project.files[0];

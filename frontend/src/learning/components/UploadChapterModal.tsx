@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, UploadCloud, FileText, CheckCircle2, AlertCircle, Loader2, Sparkles, BookOpen } from 'lucide-react';
+import { X, UploadCloud, CheckCircle2, AlertCircle, Loader2, Sparkles, BookOpen } from 'lucide-react';
 import { Chapter } from '../types/curriculum';
 import { saveUploadedChapter } from '../storage/curriculumRepository';
 

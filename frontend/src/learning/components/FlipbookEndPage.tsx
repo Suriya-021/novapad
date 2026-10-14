@@ -1,14 +1,13 @@
 import React from 'react';
-import { Lesson, CodingActivityConfig } from '../types/curriculum';
+import { Lesson } from '../types/curriculum';
 import {
   BookTheme,
   BOOK_THEMES,
   BookFontSize,
   BookFontFamily,
-  FONT_SIZE_TOKENS,
   FONT_FAMILY_STACKS,
 } from '../types/bookTheme';
-import { CheckCircle2, Code2, ArrowRight, BookOpen, Sparkles, Terminal } from 'lucide-react';
+import { CheckCircle2, Code2, ArrowRight, Sparkles, Terminal } from 'lucide-react';
 
 interface FlipbookEndPageProps {
   lesson: Lesson;
@@ -30,13 +29,12 @@ export const FlipbookEndPage: React.FC<FlipbookEndPageProps> = ({
   onLaunchCoding,
   isSplitViewActive,
   bookTheme = 'dark',
-  fontSize = 'normal',
+  fontSize: _fontSize = 'normal',
   fontFamily = 'sans',
   scrollRef,
   onScroll,
 }) => {
   const theme = BOOK_THEMES[bookTheme] || BOOK_THEMES.dark;
-  const fontTokens = FONT_SIZE_TOKENS[fontSize] || FONT_SIZE_TOKENS.normal;
   const currentFontFamily = FONT_FAMILY_STACKS[fontFamily] || FONT_FAMILY_STACKS.sans;
   const isLightMode = bookTheme === 'paper' || bookTheme === 'sepia';
 

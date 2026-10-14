@@ -30,13 +30,13 @@ interface NavigationHeaderProps {
 }
 
 export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
-  course,
-  lesson,
+  course: _course,
+  lesson: _lesson,
   sections,
   currentSectionIndex,
   onJumpToSection,
-  currentPageNumber,
-  totalPages,
+  currentPageNumber: _currentPageNumber,
+  totalPages: _totalPages,
   viewMode,
   onChangeViewMode,
   onOpenTableOfContents,

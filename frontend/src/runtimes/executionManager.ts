@@ -55,8 +55,24 @@ export class ExecutionManager {
     return this.registry;
   }
 
-  isExecuting(): boolean {
-    return this.currentRequestId !== null;
+  subscribe(listeners: {
+    onStatusUpdate?: (status: ExecutionStatus, message?: string) => void;
+    onOutputUpdate?: (result: ExecutionResult) => void;
+    onOutputChunk?: (stream: 'stdout' | 'stderr', chunk: string) => void;
+  }): () => void {
+    const prevStatus = this.onStatusUpdate;
+    const prevOutput = this.onOutputUpdate;
+    const prevChunk = this.onOutputChunk;
+
+    if (listeners.onStatusUpdate) this.onStatusUpdate = listeners.onStatusUpdate;
+    if (listeners.onOutputUpdate) this.onOutputUpdate = listeners.onOutputUpdate;
+    if (listeners.onOutputChunk) this.onOutputChunk = listeners.onOutputChunk;
+
+    return () => {
+      this.onStatusUpdate = prevStatus;
+      this.onOutputUpdate = prevOutput;
+      this.onOutputChunk = prevChunk;
+    };
   }
 
   async execute(request: Omit<ExecutionRequest, 'requestId'>): Promise<ExecutionResult> {

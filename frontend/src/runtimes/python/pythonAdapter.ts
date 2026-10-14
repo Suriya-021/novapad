@@ -28,7 +28,7 @@ export class PythonRuntimeAdapter implements ExecutionRuntime {
     );
 
     worker.onmessage = (e: MessageEvent) => {
-      const { type, payload, status, message, text } = e.data;
+      const { type, status, message, text } = e.data;
 
       if (type === 'STATUS') {
         this.onStatusChange?.(status, message);

@@ -1,11 +1,17 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, Suspense, lazy } from 'react';
 import { NavigationHeader, PlatformViewMode } from './app/NavigationHeader';
 import { FlipbookReader } from './learning/components/FlipbookReader';
 import { TableOfContentsModal } from './learning/components/TableOfContentsModal';
 import { UploadChapterModal } from './learning/components/UploadChapterModal';
 import { TextCodingEnv } from './coding/environments/TextCodingEnv';
-import { ScratchCodingEnv } from './coding/environments/ScratchCodingEnv';
-import { BlockCodingEnv } from './coding/environments/BlockCodingEnv';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+
+const ScratchCodingEnv = lazy(() =>
+  import('./coding/environments/ScratchCodingEnv').then((m) => ({ default: m.ScratchCodingEnv }))
+);
+const BlockCodingEnv = lazy(() =>
+  import('./coding/environments/BlockCodingEnv').then((m) => ({ default: m.BlockCodingEnv }))
+);
 
 import { Course, Chapter, Lesson, CodingActivityConfig } from './learning/types/curriculum';
 import { getAllCourses, getCourseById, getLessonById, getLessonProgress, saveLessonProgress } from './learning/storage/curriculumRepository';
@@ -46,72 +52,66 @@ export const App: React.FC = () => {
   const [settings, setSettings] = useState<IdeSettings>(DEFAULT_SETTINGS);
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
-  const executionManagerRef = useRef<ExecutionManager | null>(null);
+  const [executionManager] = useState<ExecutionManager>(() => new ExecutionManager(DEFAULT_SETTINGS.backendUrl));
 
   // Split Divider Dragging State
-  const isDraggingDividerRef = useRef(false);
+  const [isDraggingDivider, setIsDraggingDivider] = useState(false);
 
   // Initialize Application
   useEffect(() => {
-    const manager = new ExecutionManager(DEFAULT_SETTINGS.backendUrl);
-    executionManagerRef.current = manager;
-
     (async () => {
       await initStorageWithDefaults();
       const savedPrefs = await getSavedSettings();
       setSettings(savedPrefs);
       document.documentElement.setAttribute('data-theme', savedPrefs.theme);
-      manager.setBackendUrl(savedPrefs.backendUrl);
+      executionManager.setBackendUrl(savedPrefs.backendUrl);
 
       const allProjs = await listProjects();
       setProjects(allProjs);
 
       // Check URL hash for deep-linking (e.g., #/lesson/lesson-py-var-01)
       const hash = window.location.hash;
-      let initialLesson = currentLesson;
-      let initialCourse = currentCourse;
+      const defaultCourse = getAllCourses()[0];
+      const defaultLesson = defaultCourse?.chapters[0]?.lessons[0];
+      let initialLesson = defaultLesson;
 
       if (hash.includes('lesson=')) {
         const targetLessonId = hash.split('lesson=')[1]?.split('&')[0];
         const found = getLessonById(targetLessonId);
         if (found) {
           initialLesson = found.lesson;
-          initialCourse = found.course;
           setCurrentCourse(found.course);
           setCurrentLesson(found.lesson);
-        } else {
-          // If hash points to an old/retired lesson ID, reset to Chapter 1
-          const fresh = getAllCourses()[0];
-          if (fresh && fresh.chapters[0]?.lessons[0]) {
-            initialCourse = fresh;
-            initialLesson = fresh.chapters[0].lessons[0];
-            setCurrentCourse(fresh);
-            setCurrentLesson(initialLesson);
-            window.location.hash = `#/lesson=${initialLesson.id}`;
-          }
+        } else if (defaultLesson && defaultCourse) {
+          initialLesson = defaultLesson;
+          setCurrentCourse(defaultCourse);
+          setCurrentLesson(defaultLesson);
+          window.location.hash = `#/lesson=${defaultLesson.id}`;
         }
       }
 
-      // Check saved progress for initial lesson
-      const savedProgress = await getLessonProgress(initialLesson.id);
-      if (savedProgress) {
-        setCurrentPageIndex(Math.min(savedProgress.lastVisitedPage - 1, initialLesson.pages.length - 1));
-      }
+      if (initialLesson) {
+        // Check saved progress for initial lesson
+        const savedProgress = await getLessonProgress(initialLesson.id);
+        if (savedProgress) {
+          setCurrentPageIndex(Math.min(savedProgress.lastVisitedPage - 1, initialLesson.pages.length - 1));
+        }
 
-      // Determine initial active project
-      const activeId = await getActiveProjectId();
-      const matchingProj = allProjs.find((p: Project) => p.lessonId === initialLesson.id) ||
-                           allProjs.find((p: Project) => p.id === activeId) ||
-                           allProjs[0];
-      if (matchingProj) {
-        setCurrentProject(matchingProj);
+        // Determine initial active project
+        const activeId = await getActiveProjectId();
+        const matchingProj = allProjs.find((p: Project) => p.lessonId === initialLesson.id) ||
+                             allProjs.find((p: Project) => p.id === activeId) ||
+                             allProjs[0];
+        if (matchingProj) {
+          setCurrentProject(matchingProj);
+        }
       }
     })();
 
     return () => {
-      manager.dispose();
+      executionManager.dispose();
     };
-  }, []);
+  }, [executionManager]);
 
   // Update theme token when setting changes
   useEffect(() => {
@@ -199,11 +199,13 @@ export const App: React.FC = () => {
   }, [prevLesson, currentCourse, handleSelectLesson]);
 
   // Sections within current lesson
-  const sections = currentLesson.sections || [];
+  const sections = useMemo(() => currentLesson.sections || [], [currentLesson.sections]);
   const currentPageNumber = currentPageIndex + 1;
-  const currentSectionIndex = sections.findIndex(
-    (s) => currentPageNumber >= s.startPage && currentPageNumber <= s.endPage
-  );
+  const currentSectionIndex = useMemo(() => {
+    return sections.findIndex(
+      (s) => currentPageNumber >= s.startPage && currentPageNumber <= s.endPage
+    );
+  }, [sections, currentPageNumber]);
 
   const handleJumpToSection = useCallback((sectionIndex: number) => {
     const sec = currentLesson.sections?.[sectionIndex];
@@ -278,8 +280,8 @@ export const App: React.FC = () => {
   const handleSaveSettings = useCallback((newSettings: IdeSettings) => {
     setSettings(newSettings);
     saveSettings(newSettings);
-    executionManagerRef.current?.setBackendUrl(newSettings.backendUrl);
-  }, []);
+    executionManager?.setBackendUrl(newSettings.backendUrl);
+  }, [executionManager]);
 
   // Insert code snippet directly into the active editor file
   const handleInsertCodeToEditor = useCallback((code: string) => {
@@ -307,10 +309,9 @@ export const App: React.FC = () => {
   // Split Divider Dragging handler
   const handleMouseDownDivider = (e: React.MouseEvent) => {
     e.preventDefault();
-    isDraggingDividerRef.current = true;
+    setIsDraggingDivider(true);
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
-      if (!isDraggingDividerRef.current) return;
       const totalWidth = window.innerWidth;
       const newRatio = (moveEvent.clientX / totalWidth) * 100;
       if (newRatio >= 25 && newRatio <= 75) {
@@ -319,7 +320,7 @@ export const App: React.FC = () => {
     };
 
     const handleMouseUp = () => {
-      isDraggingDividerRef.current = false;
+      setIsDraggingDivider(false);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
@@ -358,25 +359,27 @@ export const App: React.FC = () => {
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
-              transition: isDraggingDividerRef.current ? 'none' : 'width 0.15s ease',
+              transition: isDraggingDivider ? 'none' : 'width 0.15s ease',
             }}
           >
-            <FlipbookReader
-              course={currentCourse}
-              lesson={currentLesson}
-              currentPageIndex={currentPageIndex}
-              onPageChange={handlePageChange}
-              onOpenTableOfContents={() => setTocOpen(true)}
-              onLaunchCoding={handleLaunchCodingActivity}
-              isSplitViewActive={viewMode === 'split'}
-              onNextLesson={nextLesson ? handleNextLesson : undefined}
-              onPrevLesson={prevLesson ? handlePrevLesson : undefined}
-              nextLessonTitle={nextLesson?.title}
-              prevLessonTitle={prevLesson?.title}
-              onToggleFocusMode={() => setViewMode(viewMode === 'split' ? 'book-only' : 'split')}
-              isFocusMode={viewMode === 'book-only'}
-              onInsertCodeToEditor={handleInsertCodeToEditor}
-            />
+            <ErrorBoundary name="FlipbookReader">
+              <FlipbookReader
+                course={currentCourse}
+                lesson={currentLesson}
+                currentPageIndex={currentPageIndex}
+                onPageChange={handlePageChange}
+                onOpenTableOfContents={() => setTocOpen(true)}
+                onLaunchCoding={handleLaunchCodingActivity}
+                isSplitViewActive={viewMode === 'split'}
+                onNextLesson={nextLesson ? handleNextLesson : undefined}
+                onPrevLesson={prevLesson ? handlePrevLesson : undefined}
+                nextLessonTitle={nextLesson?.title}
+                prevLessonTitle={prevLesson?.title}
+                onToggleFocusMode={() => setViewMode(viewMode === 'split' ? 'book-only' : 'split')}
+                isFocusMode={viewMode === 'book-only'}
+                onInsertCodeToEditor={handleInsertCodeToEditor}
+              />
+            </ErrorBoundary>
           </div>
         )}
 
@@ -407,35 +410,53 @@ export const App: React.FC = () => {
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
-              transition: isDraggingDividerRef.current ? 'none' : 'width 0.15s ease',
+              transition: isDraggingDivider ? 'none' : 'width 0.15s ease',
             }}
           >
             {/* Dispatch to appropriate environment mode */}
             {currentLesson.codingActivity?.mode === 'scratch' ? (
-              <ScratchCodingEnv
-                lesson={currentLesson}
-                onReturnToBook={() => setViewMode('book-only')}
-              />
+              <Suspense
+                fallback={
+                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    Loading Scratch Environment...
+                  </div>
+                }
+              >
+                <ScratchCodingEnv
+                  lesson={currentLesson}
+                  onReturnToBook={() => setViewMode('book-only')}
+                />
+              </Suspense>
             ) : currentLesson.codingActivity?.mode === 'block' ? (
-              <BlockCodingEnv
-                lesson={currentLesson}
-                onReturnToBook={() => setViewMode('book-only')}
-              />
-            ) : currentProject && executionManagerRef.current ? (
+              <Suspense
+                fallback={
+                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    Loading Block Environment...
+                  </div>
+                }
+              >
+                <BlockCodingEnv
+                  lesson={currentLesson}
+                  onReturnToBook={() => setViewMode('book-only')}
+                />
+              </Suspense>
+            ) : currentProject && executionManager ? (
               /* Default / Text Coding Environment (Monaco IDE) */
-              <TextCodingEnv
-                project={currentProject}
-                onUpdateProject={handleUpdateProject}
-                projects={projects}
-                onSelectProject={handleSelectProject}
-                onCreateProject={handleCreateProject}
-                onDeleteProject={handleDeleteProject}
-                settings={settings}
-                onSaveSettings={handleSaveSettings}
-                executionManager={executionManagerRef.current}
-                lesson={currentLesson}
-                isCompact={viewMode === 'split'}
-              />
+              <ErrorBoundary name="TextCodingEnv">
+                <TextCodingEnv
+                  project={currentProject}
+                  onUpdateProject={handleUpdateProject}
+                  projects={projects}
+                  onSelectProject={handleSelectProject}
+                  onCreateProject={handleCreateProject}
+                  onDeleteProject={handleDeleteProject}
+                  settings={settings}
+                  onSaveSettings={handleSaveSettings}
+                  executionManager={executionManager}
+                  lesson={currentLesson}
+                  isCompact={viewMode === 'split'}
+                />
+              </ErrorBoundary>
             ) : (
               <div
                 style={{
@@ -447,7 +468,7 @@ export const App: React.FC = () => {
                   color: 'var(--text-muted)',
                 }}
               >
-                No active project loaded. Click 'Click for Coding' to open this lesson's lab.
+                No active project loaded. Click &apos;Click for Coding&apos; to open this lesson&apos;s lab.
               </div>
             )}
           </div>
