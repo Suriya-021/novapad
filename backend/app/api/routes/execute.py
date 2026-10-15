@@ -22,6 +22,7 @@ def execute_code(request: ExecutionRequestModel):
         source=request.source,
         files=request.files or {},
         timeout_sec=timeout,
+        stdin=request.stdin or "",
     )
 
     return ExecutionResponseModel(

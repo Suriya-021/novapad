@@ -29,6 +29,7 @@ def run_isolated_task(
     source: str,
     files: Dict[str, str],
     timeout_sec: int,
+    stdin: str = "",
 ) -> Dict[str, Any]:
     start_time = time.perf_counter()
     clean_lang = language.lower().strip()
@@ -55,6 +56,7 @@ def run_isolated_task(
             try:
                 proc = subprocess.run(
                     [sys.executable, "-I", active_filename],
+                    input=stdin,
                     cwd=sandbox_dir,
                     capture_output=True,
                     text=True,
@@ -151,6 +153,7 @@ def run_isolated_task(
             try:
                 run_proc = subprocess.run(
                     [binary_path],
+                    input=stdin,
                     cwd=sandbox_dir,
                     capture_output=True,
                     text=True,

@@ -89,3 +89,19 @@ def test_payload_size_limit():
     response = client.post("/api/v1/execute", json=payload)
     assert response.status_code == 400
     assert "exceeds maximum allowable size" in response.json()["detail"]
+
+def test_server_python_stdin():
+    payload = {
+        "requestId": "test-req-stdin",
+        "language": "python_server",
+        "activeFile": "add.py",
+        "source": "import sys\nlines = sys.stdin.read().split()\na = int(lines[0])\nb = int(lines[1])\nprint(f'Sum is: {a + b}')",
+        "stdin": "15 27",
+        "timeoutSeconds": 5,
+    }
+    response = client.post("/api/v1/execute", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert "Sum is: 42" in data["stdout"]
+

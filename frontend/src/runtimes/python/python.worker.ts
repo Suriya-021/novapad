@@ -4,6 +4,7 @@
 interface WorkerExecutePayload {
   requestId: string;
   source: string;
+  stdin?: string;
   files?: Record<string, string>;
 }
 
@@ -90,7 +91,7 @@ self.onmessage = async (e: MessageEvent) => {
   }
 
   if (type === 'EXECUTE') {
-    const { requestId, source, files } = payload as WorkerExecutePayload;
+    const { requestId, source, stdin, files } = payload as WorkerExecutePayload;
     const startTime = performance.now();
     let stdoutBuffer = '';
     let stderrBuffer = '';
@@ -129,6 +130,13 @@ self.onmessage = async (e: MessageEvent) => {
           }
         }
       }
+
+      // Inject standard input stream (stdin)
+      const stdinData = typeof stdin === 'string' ? stdin : '';
+      await pyodide.runPythonAsync(`
+import sys, io, json
+sys.stdin = io.StringIO(json.loads(${JSON.stringify(JSON.stringify(stdinData))}))
+`);
 
       // Execute Python source
       await pyodide.runPythonAsync(source);

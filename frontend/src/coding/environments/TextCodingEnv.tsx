@@ -13,10 +13,12 @@ import { RuntimesModal } from '../../components/dialogs/RuntimesModal';
 
 import { Project, ProjectFile } from '../../types/project';
 import { ExecutionResult, ExecutionStatus } from '../../types/execution';
+import { TestCase, ValidationSummary } from '../../types/validation';
 import { IdeSettings } from '../../types/settings';
 import { ExecutionManager } from '../../runtimes/executionManager';
 import { Lesson } from '../../learning/types/curriculum';
 import { exportProjectAsZip, importProjectFromZip } from '../../storage/projectRepository';
+import { runValidation } from '../../validation/testRunner';
 
 interface TextCodingEnvProps {
   project: Project;
@@ -42,6 +44,7 @@ export const TextCodingEnv: React.FC<TextCodingEnvProps> = ({
   settings,
   onSaveSettings,
   executionManager,
+  lesson,
   isCompact,
 }) => {
   const [activeFileId, setActiveFileId] = useState<string>(project.activeFileId || project.files[0]?.id || '');
@@ -62,7 +65,27 @@ export const TextCodingEnv: React.FC<TextCodingEnvProps> = ({
   const [projectsListOpen, setProjectsListOpen] = useState(false);
   const [runtimesOpen, setRuntimesOpen] = useState(false);
 
+  // Test Case Validation state (HackerRank / MyCodeCamp style)
+  const [validationSummary, setValidationSummary] = useState<ValidationSummary | null>(null);
+  const [isValidating, setIsValidating] = useState<boolean>(false);
+  const [validationProgress, setValidationProgress] = useState<{ completed: number; total: number } | undefined>();
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Extract test cases from lesson activity or section
+  const testCases: TestCase[] = React.useMemo(() => {
+    if (lesson?.codingActivity?.testCases && lesson.codingActivity.testCases.length > 0) {
+      return lesson.codingActivity.testCases;
+    }
+    if (lesson?.sections) {
+      for (const sec of lesson.sections) {
+        if (sec.codingActivity?.testCases && sec.codingActivity.testCases.length > 0) {
+          return sec.codingActivity.testCases;
+        }
+      }
+    }
+    return [];
+  }, [lesson]);
 
   // Wire Execution Manager callbacks cleanly via subscription
   React.useEffect(() => {
@@ -134,6 +157,41 @@ export const TextCodingEnv: React.FC<TextCodingEnvProps> = ({
       }
     }
   }, [activeFile, project, executionManager]);
+
+  const handleRunTests = useCallback(async () => {
+    if (!activeFile || testCases.length === 0) return;
+
+    setIsValidating(true);
+    setValidationProgress({ completed: 0, total: testCases.length });
+    setBottomTab('tests');
+
+    const filesMap: Record<string, string> = {};
+    for (const f of project.files) {
+      filesMap[f.name] = f.content;
+    }
+
+    try {
+      const summary = await runValidation({
+        executionManager,
+        projectId: project.id,
+        activeFile: activeFile.name,
+        language: activeFile.language,
+        source: activeFile.content,
+        files: filesMap,
+        testCases,
+        validationMode: lesson?.codingActivity?.validationMode || 'trimmed',
+        onProgress: (completed, total) => {
+          setValidationProgress({ completed, total });
+        },
+      });
+
+      setValidationSummary(summary);
+    } catch (err) {
+      console.error('Validation error:', err);
+    } finally {
+      setIsValidating(false);
+    }
+  }, [activeFile, testCases, project, executionManager, lesson]);
 
   const handleStop = useCallback(() => {
     executionManager.stopCurrent();
@@ -281,6 +339,9 @@ export const TextCodingEnv: React.FC<TextCodingEnvProps> = ({
         onRun={handleRun}
         onStop={handleStop}
         onResetRuntime={handleResetRuntime}
+        onRunTests={handleRunTests}
+        hasTestCases={testCases.length > 0}
+        isValidating={isValidating}
         onExportZip={handleExportZip}
         onImportZip={handleImportZip}
         executionStatus={executionStatus}
@@ -338,6 +399,11 @@ export const TextCodingEnv: React.FC<TextCodingEnvProps> = ({
             onRefreshPreview={handleRun}
             activeTab={bottomTab}
             onSelectTab={setBottomTab}
+            testCases={testCases}
+            validationSummary={validationSummary}
+            isValidating={isValidating}
+            validationProgress={validationProgress}
+            onRunTests={handleRunTests}
           />
         </div>
       </div>

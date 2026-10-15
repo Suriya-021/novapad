@@ -11,6 +11,7 @@ import {
   Sun,
   Moon,
   Laptop,
+  ListChecks,
 } from 'lucide-react';
 import { Project } from '../../types/project';
 import { ExecutionStatus } from '../../types/execution';
@@ -26,6 +27,9 @@ interface HeaderProps {
   onRun: () => void;
   onStop: () => void;
   onResetRuntime: () => void;
+  onRunTests?: () => void;
+  hasTestCases?: boolean;
+  isValidating?: boolean;
   onExportZip: () => void;
   onImportZip: () => void;
   executionStatus: ExecutionStatus;
@@ -45,6 +49,9 @@ export const Header: React.FC<HeaderProps> = ({
   onRun,
   onStop,
   onResetRuntime,
+  onRunTests,
+  hasTestCases,
+  isValidating,
   onExportZip,
   onImportZip,
   executionStatus,
@@ -185,6 +192,31 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Square size={13} fill="currentColor" />
             <span>Stop</span>
+          </button>
+        )}
+
+        {hasTestCases && onRunTests && (
+          <button
+            onClick={onRunTests}
+            disabled={isExecuting || isValidating}
+            title="Run Automated Test Cases"
+            style={{
+              backgroundColor: 'rgba(16, 185, 129, 0.15)',
+              color: 'var(--success, #10b981)',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              borderRadius: '4px',
+              padding: '5px 12px',
+              fontWeight: 600,
+              fontSize: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: (isExecuting || isValidating) ? 'not-allowed' : 'pointer',
+              opacity: (isExecuting || isValidating) ? 0.6 : 1,
+            }}
+          >
+            <ListChecks size={13} />
+            <span>{isValidating ? 'Testing...' : 'Run Tests'}</span>
           </button>
         )}
 

@@ -7,6 +7,7 @@ class ExecutionRequestModel(BaseModel):
     language: str = Field(..., description="Programming language (e.g. c, cpp, python_server)")
     activeFile: str = Field(..., description="Entrypoint filename")
     source: str = Field(..., description="Source code content")
+    stdin: Optional[str] = Field(default="", description="Standard input passed to process")
     files: Optional[Dict[str, str]] = Field(default_factory=dict, description="Associated project files")
     timeoutSeconds: Optional[int] = Field(10, ge=1, le=25, description="Maximum execution timeout in seconds")
 

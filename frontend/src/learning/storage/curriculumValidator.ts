@@ -1,8 +1,52 @@
-import { Course, Lesson, LessonPage } from '../types/curriculum';
+import { Course, Lesson, LessonPage, CodingActivityConfig } from '../types/curriculum';
+import { TestCase } from '../../types/validation';
 
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
+}
+
+/**
+ * Validates a test case object
+ */
+export function validateTestCase(tc: unknown, index: number): string[] {
+  const errors: string[] = [];
+  if (!tc || typeof tc !== 'object') {
+    errors.push(`Test Case [${index}] must be an object.`);
+    return errors;
+  }
+  const t = tc as Partial<TestCase>;
+  if (typeof t.id !== 'string' || !t.id.trim()) {
+    errors.push(`Test Case [${index}] must have a non-empty string 'id'.`);
+  }
+  if (typeof t.input !== 'string') {
+    errors.push(`Test Case [${index}] must have a string 'input'.`);
+  }
+  if (typeof t.expectedOutput !== 'string') {
+    errors.push(`Test Case [${index}] must have a string 'expectedOutput'.`);
+  }
+  return errors;
+}
+
+/**
+ * Validates a coding activity configuration
+ */
+export function validateCodingActivity(activity: unknown): string[] {
+  const errors: string[] = [];
+  if (!activity || typeof activity !== 'object') {
+    return errors;
+  }
+  const act = activity as Partial<CodingActivityConfig>;
+  if (act.testCases) {
+    if (!Array.isArray(act.testCases)) {
+      errors.push("'testCases' must be an array.");
+    } else {
+      act.testCases.forEach((tc, idx) => {
+        errors.push(...validateTestCase(tc, idx));
+      });
+    }
+  }
+  return errors;
 }
 
 /**
@@ -51,6 +95,10 @@ export function validateLesson(lesson: unknown): ValidationResult {
     l.pages.forEach((page, idx) => {
       errors.push(...validateLessonPage(page, idx));
     });
+  }
+
+  if (l.codingActivity) {
+    errors.push(...validateCodingActivity(l.codingActivity));
   }
 
   return {

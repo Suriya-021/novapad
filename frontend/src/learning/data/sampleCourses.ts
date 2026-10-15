@@ -56,6 +56,31 @@ else:
     'Remember that dividing by zero causes a ZeroDivisionError in Python.',
     'Click "Run" at the top right of the IDE to execute your calculator in the Terminal.',
   ],
+  validationMode: 'contains',
+  testCases: [
+    {
+      id: 'calc-tc-1',
+      title: 'Sample 1: Basic Positive Integers',
+      input: '10\n2\n',
+      expectedOutput: 'Addition:       12.0\nSubtraction:    8.0\nMultiplication: 20.0\nDivision:       5.0',
+      explanation: 'Verifies 10 + 2, 10 - 2, 10 * 2, and 10 / 2',
+    },
+    {
+      id: 'calc-tc-2',
+      title: 'Sample 2: Division by Zero Guard',
+      input: '15\n0\n',
+      expectedOutput: 'Cannot divide by zero!',
+      explanation: 'Verifies program handles division by zero safely without crashing',
+    },
+    {
+      id: 'calc-tc-3',
+      title: 'Hidden Test 3: Decimal Numbers',
+      input: '7.5\n2.5\n',
+      expectedOutput: 'Addition:       10.0\nSubtraction:    5.0\nMultiplication: 18.75\nDivision:       3.0',
+      isHidden: true,
+      explanation: 'Tests floating point inputs 7.5 and 2.5',
+    },
+  ],
 };
 
 export const ACTIVITY_2_AGE_CONFIG: CodingActivityConfig = {
@@ -103,6 +128,28 @@ print("Approximate days:  ", approximate_days)
   hints: [
     'Remember to use int() because age is typically given as a whole number.',
     'Multiplication lets one input value produce multiple related metrics.',
+  ],
+  validationMode: 'contains',
+  testCases: [
+    {
+      id: 'age-tc-1',
+      title: 'Sample 1: Age 10',
+      input: '10\n',
+      expectedOutput: 'Approximate months: 120\nApproximate weeks:  520\nApproximate days:   3650',
+    },
+    {
+      id: 'age-tc-2',
+      title: 'Sample 2: Age 20',
+      input: '20\n',
+      expectedOutput: 'Approximate months: 240\nApproximate weeks:  1040\nApproximate days:   7300',
+    },
+    {
+      id: 'age-tc-3',
+      title: 'Hidden Test 3: Age 1',
+      input: '1\n',
+      expectedOutput: 'Approximate months: 12\nApproximate weeks:  52\nApproximate days:   365',
+      isHidden: true,
+    },
   ],
 };
 
@@ -155,6 +202,22 @@ print("===============================")
   hints: [
     'Notice that student_age uses int() for numerical validation, while student_name and grade stay as strings.',
     'Use separator lines like === to make console reports easy to read.',
+  ],
+  validationMode: 'contains',
+  testCases: [
+    {
+      id: 'profile-tc-1',
+      title: 'Sample 1: Alex Profile',
+      input: 'Alex\n14\nGrade 8\nComputer Science\nSoftware Engineer\n',
+      expectedOutput: 'Name:              Alex\nAge:               14\nGrade:             Grade 8\nFavourite subject: Computer Science\nFuture interest:   Software Engineer',
+    },
+    {
+      id: 'profile-tc-2',
+      title: 'Hidden Test 2: Maya Profile',
+      input: 'Maya\n15\nGrade 9\nBiology\nDoctor\n',
+      expectedOutput: 'Name:              Maya\nAge:               15\nGrade:             Grade 9\nFavourite subject: Biology\nFuture interest:   Doctor',
+      isHidden: true,
+    },
   ],
 };
 
@@ -209,6 +272,34 @@ else:
   hints: [
     'Formula for Celsius to Fahrenheit: (celsius * 9 / 5) + 32',
     'Always test with both integer numbers (e.g. 5) and decimal numbers (e.g. 2.5).',
+  ],
+  validationMode: 'contains',
+  testCases: [
+    {
+      id: 'unit-tc-1',
+      title: 'Sample 1: Kilometres to Metres',
+      input: '1\n5.5\n',
+      expectedOutput: '5.5 km = 5500.0 metres',
+    },
+    {
+      id: 'unit-tc-2',
+      title: 'Sample 2: Celsius to Fahrenheit',
+      input: '2\n100\n',
+      expectedOutput: '100.0°C = 212.0°F',
+    },
+    {
+      id: 'unit-tc-3',
+      title: 'Sample 3: Hours to Minutes',
+      input: '3\n2.5\n',
+      expectedOutput: '2.5 hours = 150.0 minutes',
+    },
+    {
+      id: 'unit-tc-4',
+      title: 'Hidden Test 4: Freezing Point',
+      input: '2\n0\n',
+      expectedOutput: '0.0°C = 32.0°F',
+      isHidden: true,
+    },
   ],
 };
 

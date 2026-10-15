@@ -203,6 +203,7 @@ export class PythonRuntimeAdapter implements ExecutionRuntime {
         payload: {
           requestId: request.requestId,
           source: request.source,
+          stdin: request.stdin,
           files: request.files,
         },
       });

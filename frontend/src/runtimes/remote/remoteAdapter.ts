@@ -50,6 +50,7 @@ export class RemoteBackendAdapter implements ExecutionRuntime {
         language: request.language,
         activeFile: request.activeFile,
         source: request.source,
+        stdin: request.stdin || '',
         files: request.files || {},
         timeoutSeconds: Math.min(20, Math.round((request.timeoutMs || 15000) / 1000)),
       };

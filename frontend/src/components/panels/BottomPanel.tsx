@@ -4,6 +4,7 @@ import {
   Table,
   Globe,
   AlertTriangle,
+  ListChecks,
   Trash2,
   Copy,
   Check,
@@ -11,10 +12,12 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { ExecutionResult } from '../../types/execution';
+import { TestCase, ValidationSummary } from '../../types/validation';
 import { SqlResultTable } from './SqlResultTable';
 import { WebPreview } from './WebPreview';
+import { TestResultsPanel } from './TestResultsPanel';
 
-export type BottomTab = 'terminal' | 'sql' | 'preview' | 'problems';
+export type BottomTab = 'terminal' | 'sql' | 'preview' | 'problems' | 'tests';
 
 interface BottomPanelProps {
   currentResult: ExecutionResult | null;
@@ -24,6 +27,11 @@ interface BottomPanelProps {
   onRefreshPreview: () => void;
   activeTab: BottomTab;
   onSelectTab: (tab: BottomTab) => void;
+  testCases?: TestCase[];
+  validationSummary?: ValidationSummary | null;
+  isValidating?: boolean;
+  validationProgress?: { completed: number; total: number };
+  onRunTests?: () => void;
 }
 
 export const BottomPanel: React.FC<BottomPanelProps> = ({
@@ -34,6 +42,11 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
   onRefreshPreview,
   activeTab,
   onSelectTab,
+  testCases = [],
+  validationSummary = null,
+  isValidating = false,
+  validationProgress,
+  onRunTests,
 }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -181,6 +194,52 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
             {currentResult?.status === 'error' && (
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--error)' }} />
             )}
+          </button>
+
+          <button
+            onClick={() => { onSelectTab('tests'); setIsMinimized(false); }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 10px',
+              background: activeTab === 'tests' && !isMinimized ? 'var(--bg-tab-active)' : 'transparent',
+              color: activeTab === 'tests' && !isMinimized ? 'var(--text-primary)' : 'var(--text-secondary)',
+              border: 'none',
+              borderRadius: '4px',
+              fontSize: '11px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            <ListChecks size={13} />
+            <span>Tests</span>
+            {validationSummary ? (
+              <span
+                style={{
+                  backgroundColor: validationSummary.allPassed ? 'var(--success, #10b981)' : 'var(--error, #ef4444)',
+                  color: '#fff',
+                  borderRadius: '999px',
+                  padding: '1px 5px',
+                  fontSize: '9px',
+                  fontWeight: 700,
+                }}
+              >
+                {validationSummary.passedTests}/{validationSummary.totalTests}
+              </span>
+            ) : testCases.length > 0 ? (
+              <span
+                style={{
+                  backgroundColor: 'var(--accent)',
+                  color: '#fff',
+                  borderRadius: '999px',
+                  padding: '1px 5px',
+                  fontSize: '9px',
+                }}
+              >
+                {testCases.length}
+              </span>
+            ) : null}
           </button>
         </div>
 
@@ -343,6 +402,16 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
                 </div>
               )}
             </div>
+          )}
+
+          {activeTab === 'tests' && (
+            <TestResultsPanel
+              testCases={testCases}
+              summary={validationSummary}
+              isValidating={isValidating}
+              validationProgress={validationProgress}
+              onRunTests={onRunTests || (() => {})}
+            />
           )}
         </div>
       )}

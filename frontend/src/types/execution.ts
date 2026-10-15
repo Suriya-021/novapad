@@ -16,6 +16,7 @@ export interface ExecutionRequest {
   activeFile: string;
   language: string;
   source: string;
+  stdin?: string;
   files?: Record<string, string>;
   mode?: ExecutionMode;
   timeoutMs?: number;

@@ -145,4 +145,56 @@ describe('curriculumValidator', () => {
       expect(res2.errors.some((e) => e.includes('at least one lesson'))).toBe(true);
     });
   });
+
+  describe('validateTestCase and validateCodingActivity', () => {
+    it('validates coding activities with well-formed test cases', () => {
+      const lessonWithTests: Lesson = {
+        id: 'lesson-with-tests',
+        chapterId: 'ch-01',
+        courseId: 'course-01',
+        order: 1,
+        title: 'Calculator Lesson',
+        summary: 'Math operations',
+        estimatedMinutes: 20,
+        pages: [{ pageNumber: 1, title: 'Intro', content: 'Intro' }],
+        codingActivity: {
+          enabled: true,
+          mode: 'text',
+          language: 'python',
+          title: 'Calc Lab',
+          instructions: 'Build calc',
+          projectTemplateId: 'calc-temp',
+          testCases: [
+            { id: 'tc-1', title: 'Case 1', input: '10\n20\n', expectedOutput: '30' },
+            { id: 'tc-2', title: 'Case 2', input: '0\n0\n', expectedOutput: '0', isHidden: true },
+          ],
+        },
+      };
+
+      const res = validateLesson(lessonWithTests);
+      expect(res.valid).toBe(true);
+      expect(res.errors).toHaveLength(0);
+    });
+
+    it('rejects malformed test cases in coding activity', () => {
+      const lessonWithBadTests = {
+        id: 'lesson-bad-tests',
+        title: 'Lesson Bad Tests',
+        pages: [{ pageNumber: 1, title: 'Intro', content: 'Intro' }],
+        codingActivity: {
+          enabled: true,
+          mode: 'text',
+          testCases: [
+            { id: '', input: 123 }, // missing id, input not string, missing expectedOutput
+          ],
+        },
+      };
+
+      const res = validateLesson(lessonWithBadTests);
+      expect(res.valid).toBe(false);
+      expect(res.errors.some((e) => e.includes("non-empty string 'id'"))).toBe(true);
+      expect(res.errors.some((e) => e.includes("string 'input'"))).toBe(true);
+      expect(res.errors.some((e) => e.includes("string 'expectedOutput'"))).toBe(true);
+    });
+  });
 });

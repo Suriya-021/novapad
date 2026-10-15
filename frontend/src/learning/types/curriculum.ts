@@ -1,3 +1,5 @@
+import { TestCase, ValidationMode } from '../../types/validation';
+
 export type CodingMode = 'text' | 'scratch' | 'block';
 
 export interface CodingActivityConfig {
@@ -14,6 +16,8 @@ export interface CodingActivityConfig {
   }[];
   difficulty?: 'beginner' | 'intermediate' | 'advanced';
   hints?: string[];
+  testCases?: TestCase[];
+  validationMode?: ValidationMode;
 }
 
 export interface ChapterSection {
