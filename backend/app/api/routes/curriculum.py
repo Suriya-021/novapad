@@ -19,9 +19,12 @@ class DocxUploadRequest(BaseModel):
 @router.post("/curriculum/upload-docx")
 async def upload_and_parse_docx(payload: DocxUploadRequest):
     try:
-        raw_bytes = base64.b64decode(payload.contentBase64)
+        raw_bytes = base64.b64decode(payload.contentBase64, validate=True)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid base64 payload: {str(e)}")
+
+    if not zipfile.is_zipfile(io.BytesIO(raw_bytes)):
+        raise HTTPException(status_code=400, detail="The uploaded file is not a valid docx document.")
 
     try:
         z = io.BytesIO(raw_bytes)
@@ -193,5 +196,9 @@ async def upload_and_parse_docx(payload: DocxUploadRequest):
                 "lessons": clean_lessons
             }
         }
+    except HTTPException:
+        raise
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=f"Missing expected document structure: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to parse docx: {str(e)}")
